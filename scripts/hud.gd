@@ -5,6 +5,8 @@ signal move_changed(direction: Vector2)
 signal look_changed(relative_motion: Vector2)
 signal jump_pressed
 signal sprint_changed(active: bool)
+signal fire_changed(active: bool)
+signal reload_pressed
 
 const JOYSTICK_COLOR := Color(0.12, 0.16, 0.18, 0.62)
 const THUMB_COLOR := Color(0.68, 0.76, 0.72, 0.82)
@@ -18,6 +20,8 @@ var _joystick_base: Panel
 var _joystick_thumb: Panel
 var _jump_button: Panel
 var _sprint_button: Panel
+var _fire_button: Panel
+var _reload_button: Panel
 var _touch_controls_visible: bool = false
 var _joystick_center: Vector2 = Vector2.ZERO
 var _joystick_radius: float = 0.0
@@ -80,14 +84,20 @@ func _build_overlay() -> void:
 	_joystick_thumb = _make_disc(THUMB_COLOR, Color(0.9, 0.96, 0.92, 0.92))
 	_jump_button = _make_disc(BUTTON_COLOR, BUTTON_BORDER)
 	_sprint_button = _make_disc(BUTTON_COLOR, BUTTON_BORDER)
+	_fire_button = _make_disc(Color(0.43, 0.16, 0.14, 0.85), BUTTON_BORDER)
+	_reload_button = _make_disc(BUTTON_COLOR, BUTTON_BORDER)
 	_overlay.add_child(_joystick_base)
 	_overlay.add_child(_joystick_thumb)
 	_overlay.add_child(_jump_button)
 	_overlay.add_child(_sprint_button)
+	_overlay.add_child(_fire_button)
+	_overlay.add_child(_reload_button)
 	_add_button_label(_jump_button, "JUMP")
 	_add_button_label(_sprint_button, "SPRINT")
+	_add_button_label(_fire_button, "FIRE")
+	_add_button_label(_reload_button, "RELOAD")
 
-	for control in [_joystick_base, _joystick_thumb, _jump_button, _sprint_button]:
+	for control in [_joystick_base, _joystick_thumb, _jump_button, _sprint_button, _fire_button, _reload_button]:
 		control.visible = _touch_controls_visible
 
 
@@ -104,6 +114,8 @@ func _layout_controls() -> void:
 	_set_disc_layout(_joystick_thumb, _joystick_center, _joystick_radius * 0.35)
 	_set_disc_layout(_jump_button, Vector2(viewport_size.x * 0.88, viewport_size.y * 0.70), button_radius)
 	_set_disc_layout(_sprint_button, Vector2(viewport_size.x * 0.88, viewport_size.y * 0.88), button_radius)
+	_set_disc_layout(_fire_button, Vector2(viewport_size.x * 0.70, viewport_size.y * 0.73), button_radius * 1.1)
+	_set_disc_layout(_reload_button, Vector2(viewport_size.x * 0.70, viewport_size.y * 0.91), button_radius * 0.80)
 
 
 func _input(event: InputEvent) -> void:
@@ -132,6 +144,14 @@ func _begin_touch(index: int, position: Vector2) -> bool:
 		_touch_roles[index] = "sprint"
 		sprint_changed.emit(true)
 		return true
+	if _fire_button.visible and _fire_button.get_global_rect().has_point(position):
+		_touch_roles[index] = "fire"
+		fire_changed.emit(true)
+		return true
+	if _reload_button.visible and _reload_button.get_global_rect().has_point(position):
+		_touch_roles[index] = "reload"
+		reload_pressed.emit()
+		return true
 	if position.x >= get_viewport().get_visible_rect().size.x * 0.5:
 		_touch_roles[index] = "look"
 		return true
@@ -149,6 +169,8 @@ func _end_touch(index: int) -> bool:
 			_set_disc_layout(_joystick_thumb, _joystick_center, _joystick_radius * 0.35)
 		"sprint":
 			sprint_changed.emit(false)
+		"fire":
+			fire_changed.emit(false)
 	return true
 
 

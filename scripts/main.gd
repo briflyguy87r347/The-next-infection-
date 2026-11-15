@@ -19,12 +19,14 @@ func build_world() -> void:
 	ground.position.y = -0.5
 
 	var ground_shape := CollisionShape3D.new()
+	ground_shape.name = "GroundCollision"
 	var ground_box := BoxShape3D.new()
 	ground_box.size = Vector3(40.0, 1.0, 40.0)
 	ground_shape.shape = ground_box
 	ground.add_child(ground_shape)
 
 	var ground_mesh := MeshInstance3D.new()
+	ground_mesh.name = "GroundVisual"
 	var ground_box_mesh := BoxMesh.new()
 	ground_box_mesh.size = ground_box.size
 	ground_mesh.mesh = ground_box_mesh
@@ -59,7 +61,12 @@ func _spawn_player_and_hud() -> void:
 	hud.jump_pressed.connect(player.request_jump)
 	hud.sprint_changed.connect(player.set_mobile_sprinting)
 	player.health_changed.connect(hud.set_health)
-	hud.set_health(player.health, player.max_health)
+	hud.set_health(player.health, player.maximum_health)
+	var combat := CombatDirector.new()
+	combat.name = "CombatDirector"
+	combat.player = player
+	combat.hud = hud
+	add_child(combat)
 
 
 func _create_obstacle(ground_position: Vector3, size: Vector3, color: Color) -> void:
@@ -67,12 +74,14 @@ func _create_obstacle(ground_position: Vector3, size: Vector3, color: Color) -> 
 	obstacle.position = Vector3(ground_position.x, size.y * 0.5, ground_position.z)
 
 	var collision := CollisionShape3D.new()
+	collision.name = "ObstacleCollision"
 	var shape := BoxShape3D.new()
 	shape.size = size
 	collision.shape = shape
 	obstacle.add_child(collision)
 
 	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.name = "ObstacleVisual"
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	mesh_instance.mesh = mesh
