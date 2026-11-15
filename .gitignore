@@ -1,3 +1,8 @@
-
-# Godot editor cache
+# Godot-generated data and local editor state
 .godot/
+# Local test/build outputs
+*.apk
+*.aab
+*.pck
+*.log
+.DS_Store
