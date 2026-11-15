@@ -7,6 +7,8 @@ signal jump_pressed
 signal sprint_changed(active: bool)
 signal fire_changed(active: bool)
 signal reload_pressed
+signal use_pressed
+signal aim_changed(active: bool)
 
 const JOYSTICK_COLOR := Color(0.12, 0.16, 0.18, 0.62)
 const THUMB_COLOR := Color(0.68, 0.76, 0.72, 0.82)
@@ -22,6 +24,8 @@ var _jump_button: Panel
 var _sprint_button: Panel
 var _fire_button: Panel
 var _reload_button: Panel
+var _use_button: Panel
+var _aim_button: Panel
 var _touch_controls_visible: bool = false
 var _joystick_center: Vector2 = Vector2.ZERO
 var _joystick_radius: float = 0.0
@@ -34,6 +38,18 @@ func _ready() -> void:
 	_build_overlay()
 	get_viewport().size_changed.connect(_layout_controls)
 	_layout_controls()
+
+
+func set_combat_controls_visible(enabled: bool) -> void:
+	# Reuse movement, look, sprint, jump and USE in safe areas without guns.
+	if is_instance_valid(_fire_button):
+		_fire_button.visible = _touch_controls_visible and enabled
+	if is_instance_valid(_reload_button):
+		_reload_button.visible = _touch_controls_visible and enabled
+	if is_instance_valid(_aim_button):
+		_aim_button.visible = _touch_controls_visible and enabled
+	if not enabled:
+		aim_changed.emit(false)
 
 
 func set_health(current_health: int, maximum_health: int) -> void:
@@ -86,18 +102,24 @@ func _build_overlay() -> void:
 	_sprint_button = _make_disc(BUTTON_COLOR, BUTTON_BORDER)
 	_fire_button = _make_disc(Color(0.43, 0.16, 0.14, 0.85), BUTTON_BORDER)
 	_reload_button = _make_disc(BUTTON_COLOR, BUTTON_BORDER)
+	_use_button = _make_disc(Color(0.33, 0.32, 0.14, 0.83), BUTTON_BORDER)
+	_aim_button = _make_disc(Color(0.15, 0.32, 0.41, 0.86), BUTTON_BORDER)
 	_overlay.add_child(_joystick_base)
 	_overlay.add_child(_joystick_thumb)
 	_overlay.add_child(_jump_button)
 	_overlay.add_child(_sprint_button)
 	_overlay.add_child(_fire_button)
 	_overlay.add_child(_reload_button)
+	_overlay.add_child(_use_button)
+	_overlay.add_child(_aim_button)
 	_add_button_label(_jump_button, "JUMP")
 	_add_button_label(_sprint_button, "SPRINT")
 	_add_button_label(_fire_button, "FIRE")
 	_add_button_label(_reload_button, "RELOAD")
+	_add_button_label(_use_button, "USE")
+	_add_button_label(_aim_button, "ADS")
 
-	for control in [_joystick_base, _joystick_thumb, _jump_button, _sprint_button, _fire_button, _reload_button]:
+	for control in [_joystick_base, _joystick_thumb, _jump_button, _sprint_button, _fire_button, _reload_button, _use_button, _aim_button]:
 		control.visible = _touch_controls_visible
 
 
@@ -116,6 +138,8 @@ func _layout_controls() -> void:
 	_set_disc_layout(_sprint_button, Vector2(viewport_size.x * 0.88, viewport_size.y * 0.88), button_radius)
 	_set_disc_layout(_fire_button, Vector2(viewport_size.x * 0.70, viewport_size.y * 0.73), button_radius * 1.1)
 	_set_disc_layout(_reload_button, Vector2(viewport_size.x * 0.70, viewport_size.y * 0.91), button_radius * 0.80)
+	_set_disc_layout(_use_button, Vector2(viewport_size.x * 0.53, viewport_size.y * 0.86), button_radius * 0.92)
+	_set_disc_layout(_aim_button, Vector2(viewport_size.x * 0.69, viewport_size.y * 0.52), button_radius * 0.80)
 
 
 func _input(event: InputEvent) -> void:
@@ -144,6 +168,10 @@ func _begin_touch(index: int, position: Vector2) -> bool:
 		_touch_roles[index] = "sprint"
 		sprint_changed.emit(true)
 		return true
+	if _aim_button.visible and _aim_button.get_global_rect().has_point(position):
+		_touch_roles[index] = "aim"
+		aim_changed.emit(true)
+		return true
 	if _fire_button.visible and _fire_button.get_global_rect().has_point(position):
 		_touch_roles[index] = "fire"
 		fire_changed.emit(true)
@@ -151,6 +179,10 @@ func _begin_touch(index: int, position: Vector2) -> bool:
 	if _reload_button.visible and _reload_button.get_global_rect().has_point(position):
 		_touch_roles[index] = "reload"
 		reload_pressed.emit()
+		return true
+	if _use_button.visible and _use_button.get_global_rect().has_point(position):
+		_touch_roles[index] = "use"
+		use_pressed.emit()
 		return true
 	if position.x >= get_viewport().get_visible_rect().size.x * 0.5:
 		_touch_roles[index] = "look"
@@ -171,6 +203,8 @@ func _end_touch(index: int) -> bool:
 			sprint_changed.emit(false)
 		"fire":
 			fire_changed.emit(false)
+		"aim":
+			aim_changed.emit(false)
 	return true
 
 
